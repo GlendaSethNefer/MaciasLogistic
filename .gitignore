@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+.env/
+
+# Logs y cachés
+pip-log.txt
+pip-delete-this-directory.txt
+.mysql_history
+
+# Flask instance
+instance/
+
+# Tailwind / Node
+node_modules/
+npm-debug.log
+public/
+static/styles.css
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store

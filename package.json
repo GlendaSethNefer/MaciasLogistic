@@ -1,0 +1,10 @@
+{
+  "name": "autogest",
+  "version": "1.0.0",
+  "scripts": {
+    "build-css": "tailwindcss -i ./src/input.css -o ./static/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.2"
+  }
+}

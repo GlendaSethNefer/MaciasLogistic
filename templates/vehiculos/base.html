@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>{% block titulo %}{% endblock %}</title>
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <header class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+      <a href="{{ url_for('inicio') }}" class="text-xl font-bold">AutoGest</a>
+      <nav class="space-x-4">
+        <a href="{{ url_for('lista_proveedores') }}" class="hover:underline">Proveedores</a>
+        <a href="{{ url_for('lista_autos') }}"      class="hover:underline">Autos</a>
+        <a href="{{ url_for('lista_clientes') }}"   class="hover:underline">Clientes</a>
+        <a href="{{ url_for('lista_ordenes') }}"    class="hover:underline">Órdenes</a>
+      </nav>
+      <div class="flex items-center space-x-4">
+        {% if current_user.is_authenticated %}
+          <span>{{ nombre_usuario }} ({{ rol_actual }})</span>
+          <a href="{{ url_for('logout') }}" class="text-red-600 hover:underline">Cerrar sesión</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="text-indigo-600 hover:underline">Iniciar sesión</a>
+        {% endif %}
+      </div>
+    </div>
+    <!-- Flash messages -->
+    <div class="max-w-6xl mx-auto px-4 mt-4">
+      {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% if mensajes %}
+          {% for cat,msg in mensajes %}
+            <div class="flash mb-4 p-4 rounded transition duration-500
+              {% if cat=='success' %}bg-green-100 border border-green-400 text-green-700
+              {% else %}bg-red-100 border border-red-400 text-red-700{% endif %}">
+              {{ msg }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+  </header>
+
+  <main class="py-8">{% block contenido %}{% endblock %}</main>
+
+  <footer class="bg-white shadow mt-12">
+    <div class="max-w-6xl mx-auto px-4 py-4 text-center text-gray-600">
+      © 2025 AutoGest. Todos los derechos reservados.
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.querySelectorAll('.flash').forEach(el => {
+          el.classList.add('opacity-0');
+          setTimeout(() => el.remove(), 500);
+        });
+      }, 3000);
+    });
+  </script>
+</body>
+</html>

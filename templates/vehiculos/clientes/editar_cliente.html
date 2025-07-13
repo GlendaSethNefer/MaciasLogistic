@@ -1,0 +1,41 @@
+{% extends 'vehiculos/base.html' %}
+{% block titulo %}Editar Cliente | AutoGest{% endblock %}
+
+{% block contenido %}
+<div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
+  <h2 class="text-xl font-semibold mb-4">Editar Cliente</h2>
+  <form method="POST" class="space-y-4">
+    {% for field,label in [
+      ('cliente_cuba','Cliente Cuba'),
+      ('cliente_usa','Cliente USA'),
+      ('pn','PN'),
+      ('mpm','MPM'),
+      ('estado','Estado General'),
+      ('conf_accordia','Confirmación Accordia'),
+      ('dr','DR'),
+      ('estado_documentacion','Estado Documentación'),
+      ('expediente','Número de Expediente'),
+      ('vin','VIN del Auto'),
+      ('marca','Marca'),
+      ('modelo','Modelo')
+    ] %}
+      <div>
+        <label class="block font-medium mb-1">{{ label }}</label>
+        <input
+          name="{{ field }}" type="text" required
+          value="{{ cliente[field] }}"
+          class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+    {% endfor %}
+    <div class="flex justify-between items-center">
+      <a href="{{ url_for('lista_clientes') }}"
+         class="text-gray-600 hover:underline">Cancelar</a>
+      <button type="submit"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Guardar Cambios
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

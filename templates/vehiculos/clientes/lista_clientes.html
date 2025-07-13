@@ -1,0 +1,69 @@
+{% extends 'vehiculos/base.html' %}
+{% block titulo %}Clientes | AutoGest{% endblock %}
+
+{% block contenido %}
+<div class="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-semibold">Clientes</h2>
+    {% if has_permission('create') %}
+      <a href="{{ url_for('registrar_cliente') }}"
+         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+        + Nuevo Cliente
+      </a>
+    {% endif %}
+  </div>
+  <table class="w-full table-auto border-collapse">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="p-2 text-left">Cuba</th>
+        <th class="p-2 text-left">USA</th>
+        <th class="p-2 text-left">Estado Doc.</th>
+        <th class="p-2 text-left"># Exp.</th>
+        <th class="p-2 text-left">Auto (VIN)</th>
+        <th class="p-2 text-left">Marca</th>
+        <th class="p-2 text-left">Modelo</th>
+        {% if has_permission('edit') or has_permission('delete') %}
+          <th class="p-2 text-center">Acciones</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in clientes %}
+      <tr class="hover:bg-gray-50 border-b">
+        <td class="p-2">{{ c.cliente_cuba }}</td>
+        <td class="p-2">{{ c.cliente_usa }}</td>
+        <td class="p-2">{{ c.estado_documentacion }}</td>
+        <td class="p-2">{{ c.expediente }}</td>
+        <td class="p-2">{{ c.vin }}</td>
+        <td class="p-2">{{ c.marca }}</td>
+        <td class="p-2">{{ c.modelo }}</td>
+        {% if has_permission('edit') or has_permission('delete') %}
+          <td class="p-2 text-center space-x-2">
+            {% if has_permission('edit') %}
+              <a href="{{ url_for('editar_cliente', cliente_id=c.id) }}"
+                 class="text-blue-600 hover:underline">Editar</a>
+            {% endif %}
+            {% if has_permission('delete') %}
+              <form method="POST"
+                    action="{{ url_for('borrar_cliente', cliente_id=c.id) }}"
+                    class="inline"
+                    onsubmit="return confirm('¿Eliminar cliente?');">
+                <button type="submit"
+                        class="text-red-600 hover:underline">Borrar</button>
+              </form>
+            {% endif %}
+          </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{% if has_permission('edit') or has_permission('delete') %}9{% else %}8{% endif %}"
+            class="p-4 text-center text-gray-500">
+          No hay clientes registrados.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

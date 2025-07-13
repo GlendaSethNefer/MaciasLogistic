@@ -1,0 +1,60 @@
+{% extends 'vehiculos/base.html' %}
+{% block titulo %}Editar Proveedor | AutoGest{% endblock %}
+
+{% block contenido %}
+<div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
+  <h2 class="text-xl font-semibold mb-4">Editar Proveedor</h2>
+  <form method="POST" class="space-y-4">
+    <div>
+      <label class="block font-medium">Nombre</label>
+      <input name="nombre" type="text" required
+             value="{{ proveedor.nombre }}"
+             class="w-full border rounded px-3 py-2"/>
+    </div>
+    <div>
+      <label class="block font-medium">Titular</label>
+      <input name="titular" type="text" required
+             value="{{ proveedor.titular }}"
+             class="w-full border rounded px-3 py-2"/>
+    </div>
+    <div>
+      <label class="block font-medium">Número de Cuenta</label>
+      <input name="numero_cuenta" type="text" required
+             value="{{ proveedor.numero_cuenta }}"
+             class="w-full border rounded px-3 py-2"/>
+    </div>
+    <div>
+      <label class="block font-medium">Banco</label>
+      <input name="banco" type="text" required
+             value="{{ proveedor.banco }}"
+             class="w-full border rounded px-3 py-2"/>
+    </div>
+    <div>
+      <label class="block font-medium">Dirección</label>
+      <input name="direccion" type="text" required
+             value="{{ proveedor.direccion }}"
+             class="w-full border rounded px-3 py-2"/>
+    </div>
+    <div>
+      <label class="block font-medium">SWIFT</label>
+      <input name="swift" type="text" required
+             value="{{ proveedor.swift }}"
+             class="w-full border rounded px-3 py-2"/>
+    </div>
+    <div>
+      <label class="block font-medium">Número de Ruta</label>
+      <input name="numero_ruta" type="text" required
+             value="{{ proveedor.numero_ruta }}"
+             class="w-full border rounded px-3 py-2"/>
+    </div>
+    <div class="flex justify-between items-center">
+      <a href="{{ url_for('lista_proveedores') }}"
+         class="text-gray-600 hover:underline">Cancelar</a>
+      <button type="submit"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Guardar Cambios
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'vehiculos/base.html' %}
+{% block titulo %}Inicio | AutoGest{% endblock %}
+{% block contenido %}
+  {% if not current_user.is_authenticated %}
+    <div class="max-w-2xl mx-auto mb-8 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded">
+      Para seguir usando el sitio, por favor
+      <a href="{{ url_for('login') }}" class="font-semibold underline">inicia sesión</a>.
+    </div>
+  {% endif %}
+  <div class="relative isolate overflow-hidden bg-white px-6 pt-14 lg:px-8">
+    <!-- degradados omitidos por brevedad -->
+    <div class="mx-auto max-w-2xl py-32 text-center sm:py-48 lg:py-56">
+      <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-7xl">
+        Gestiona tu negocio de autos importados
+      </h1>
+      <p class="mt-6 text-lg leading-8 text-gray-600">
+        AutoGest te ofrece un panel único para controlar proveedores, vehículos, clientes y órdenes.
+      </p>
+      <div class="mt-10 flex items-center justify-center gap-x-6">
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('lista_autos') }}"
+             class="rounded-md bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow hover:bg-indigo-500">
+            Ver Autos
+          </a>
+          <a href="{{ url_for('lista_proveedores') }}"
+             class="text-sm font-semibold text-gray-900 hover:underline">
+            Ver Proveedores →
+          </a>
+        {% else %}
+          <a href="{{ url_for('login') }}"
+             class="rounded-md bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow hover:bg-indigo-500">
+            Inicia sesión →
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

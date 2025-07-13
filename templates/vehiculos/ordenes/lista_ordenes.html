@@ -1,0 +1,69 @@
+{% extends 'vehiculos/base.html' %}
+{% block titulo %}Órdenes | AutoGest{% endblock %}
+
+{% block contenido %}
+<div class="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-semibold">Órdenes</h2>
+    {% if has_permission('create') %}
+      <a href="{{ url_for('registrar_orden') }}"
+         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+        + Nueva Orden
+      </a>
+    {% endif %}
+  </div>
+  <table class="w-full table-auto border-collapse">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="p-2">ID</th>
+        <th class="p-2">Cliente</th>
+        <th class="p-2">Auto (VIN)</th>
+        <th class="p-2">Usuario</th>
+        <th class="p-2">Fecha</th>
+        <th class="p-2">Estado</th>
+        <th class="p-2">Total</th>
+        {% if has_permission('edit') or has_permission('delete') %}
+          <th class="p-2 text-center">Acciones</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in ordenes %}
+      <tr class="hover:bg-gray-50 border-b">
+        <td class="p-2">{{ o.id }}</td>
+        <td class="p-2">{{ o.cliente_cuba }}</td>
+        <td class="p-2">{{ o.vin }}</td>
+        <td class="p-2">{{ o.nombre_usuario or '—' }}</td>
+        <td class="p-2">{{ o.fecha }}</td>
+        <td class="p-2">{{ o.estado }}</td>
+        <td class="p-2">{{ o.total }}</td>
+        {% if has_permission('edit') or has_permission('delete') %}
+          <td class="p-2 text-center space-x-2">
+            {% if has_permission('edit') %}
+              <a href="{{ url_for('editar_orden', orden_id=o.id) }}"
+                 class="text-blue-600 hover:underline">Editar</a>
+            {% endif %}
+            {% if has_permission('delete') %}
+              <form method="POST"
+                    action="{{ url_for('borrar_orden', orden_id=o.id) }}"
+                    class="inline"
+                    onsubmit="return confirm('¿Eliminar esta orden?');">
+                <button type="submit"
+                        class="text-red-600 hover:underline">Borrar</button>
+              </form>
+            {% endif %}
+          </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{% if has_permission('edit') or has_permission('delete') %}9{% else %}8{% endif %}"
+            class="p-4 text-center text-gray-500">
+          No hay órdenes.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

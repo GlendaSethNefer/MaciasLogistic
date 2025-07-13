@@ -1,0 +1,56 @@
+{% extends 'vehiculos/base.html' %}
+{% block titulo %}Registrar Orden | AutoGest{% endblock %}
+
+{% block contenido %}
+<div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
+  <h2 class="text-xl font-semibold mb-4">Registrar Orden</h2>
+  <form method="POST" class="space-y-4">
+    <div>
+      <label class="block font-medium">Cliente</label>
+      <select name="cliente_id" required class="w-full border rounded px-3 py-2">
+        <option value="">— Selecciona —</option>
+        {% for c in clientes %}
+          <option value="{{ c.id }}">{{ c.cliente_cuba }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block font-medium">Auto</label>
+      <select name="auto_id" required class="w-full border rounded px-3 py-2">
+        <option value="">— Selecciona —</option>
+        {% for a in autos %}
+          <option value="{{ a.id }}">{{ a.vin }} — {{ a.marca }} {{ a.modelo }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block font-medium">Usuario</label>
+      <select name="usuario_id" required class="w-full border rounded px-3 py-2">
+        <option value="">— Selecciona —</option>
+        {% for u in usuarios %}
+          <option value="{{ u.id }}">{{ u.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block font-medium">Estado</label>
+      <select name="estado" required class="w-full border rounded px-3 py-2">
+        <option value="reservado">Reservado</option>
+        <option value="pagado">Pagado</option>
+        <option value="entregado">Entregado</option>
+      </select>
+    </div>
+    <div>
+      <label class="block font-medium">Total (USD)</label>
+      <input
+        name="total" type="number" step="0.01" value="0.00" required
+        class="w-full border rounded px-3 py-2"
+      />
+    </div>
+    <button type="submit"
+      class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+      Guardar Orden
+    </button>
+  </form>
+</div>
+{% endblock %}

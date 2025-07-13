@@ -1,0 +1,64 @@
+{% extends 'vehiculos/base.html' %}
+{% block titulo %}Editar Auto | AutoGest{% endblock %}
+
+{% block contenido %}
+<div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
+  <h2 class="text-xl font-semibold mb-4">Editar Auto</h2>
+  <form method="POST" class="space-y-4">
+    <div>
+      <label class="block font-medium">VIN</label>
+      <input
+        name="vin" type="text" required
+        pattern="[A-HJ-NPR-Z0-9]{17}"
+        title="17 caracteres alfanuméricos (sin I, O, Q)"
+        value="{{ auto.vin }}"
+        class="w-full border rounded px-3 py-2"
+      />
+    </div>
+    <div>
+      <label class="block font-medium">Marca</label>
+      <input
+        name="marca" type="text" required minlength="2"
+        value="{{ auto.marca }}"
+        class="w-full border rounded px-3 py-2"
+      />
+    </div>
+    <div>
+      <label class="block font-medium">Modelo</label>
+      <input
+        name="modelo" type="text" required minlength="1"
+        value="{{ auto.modelo }}"
+        class="w-full border rounded px-3 py-2"
+      />
+    </div>
+    <div>
+      <label class="block font-medium">Año</label>
+      <input
+        name="año" type="number" required
+        min="1886" max="{{ now().year }}"
+        value="{{ auto.año }}"
+        class="w-full border rounded px-3 py-2"
+      />
+    </div>
+    <div>
+      <label class="block font-medium">Proveedor</label>
+      <select name="proveedor" required class="w-full border rounded px-3 py-2">
+        {% for p in proveedores %}
+          <option value="{{ p.id }}"
+            {% if p.id == auto.proveedor_id %}selected{% endif %}>
+            {{ p.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="flex justify-between items-center">
+      <a href="{{ url_for('lista_autos') }}"
+         class="text-gray-600 hover:underline">Cancelar</a>
+      <button type="submit"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Guardar Cambios
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
