@@ -2,50 +2,48 @@
 {% block titulo %}Registrar Auto | AutoGest{% endblock %}
 
 {% block contenido %}
-<div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
+<div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow">
   <h2 class="text-xl font-semibold mb-4">Registrar Auto</h2>
   <form method="POST" class="space-y-4">
-    <div>
-      <label class="block font-medium">VIN</label>
-      <input
-        name="vin" type="text" required
-        pattern="[A-HJ-NPR-Z0-9]{17}"
-        title="17 caracteres alfanuméricos (sin I, O, Q)"
-        class="w-full border rounded px-3 py-2"
-      />
-    </div>
-    <div>
-      <label class="block font-medium">Marca</label>
-      <input
-        name="marca" type="text" required minlength="2"
-        class="w-full border rounded px-3 py-2"
-      />
-    </div>
-    <div>
-      <label class="block font-medium">Modelo</label>
-      <input
-        name="modelo" type="text" required minlength="1"
-        class="w-full border rounded px-3 py-2"
-      />
-    </div>
-    <div>
-      <label class="block font-medium">Año</label>
-      <input
-        name="año" type="number" required
-        min="1886" max="{{ now().year }}"
-        class="w-full border rounded px-3 py-2"
-      />
-    </div>
-    <div>
-      <label class="block font-medium">Proveedor</label>
-      <select name="proveedor" required
-              class="w-full border rounded px-3 py-2">
-        <option value="">— Selecciona —</option>
-        {% for p in proveedores %}
-          <option value="{{ p.id }}">{{ p.nombre }}</option>
-        {% endfor %}
-      </select>
-    </div>
+    {% for field,label,kind in [
+      ('nombre_cliente','Nombre Cliente','text'),
+      ('dr','DR','text'),
+      ('vin','VIN','text'),
+      ('marca','Marca','text'),
+      ('modelo','Modelo','text'),
+      ('año','Año','number'),
+      ('millas','Millas','number'),
+      ('licencia','Número de Licencia','text'),
+      ('importadora','Importadora','text'),
+      ('ent_puerto','Ent. Puerto','date'),
+      ('tit_enviado','Tit Enviado','date'),
+      ('bill_of_sale','Bill of Sale','text'),
+      ('sed','SED','text'),
+      ('estado','Estado','text'),
+      ('accordia','Accordia','text'),
+      ('fecha_salida','Fecha Salida','date'),
+      ('observaciones','Observaciones','textarea')
+    ] %}
+      <div>
+        <label class="block font-medium mb-1">{{ label }}</label>
+        {% if kind == 'textarea' %}
+          <textarea
+            name="{{ field }}"
+            rows="3"
+            class="w-full border rounded px-3 py-2"
+          ></textarea>
+        {% else %}
+          <input
+            name="{{ field }}"
+            type="{{ kind }}"
+            {% if kind=='number' %} min="0" {% endif %}
+            required
+            class="w-full border rounded px-3 py-2"
+            {% if field == 'vin' %} pattern="[A-HJ-NPR-Z0-9]{17}" title="17 caracteres alfanuméricos"{% endif %}
+          />
+        {% endif %}
+      </div>
+    {% endfor %}
     <button type="submit"
       class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
       Guardar Auto

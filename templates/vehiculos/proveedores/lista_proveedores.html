@@ -2,26 +2,33 @@
 {% block titulo %}Proveedores | AutoGest{% endblock %}
 
 {% block contenido %}
-<div class="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow">
+<div class=" max-w-full mx-4 p-6 bg-white rounded-lg shadow">
   <div class="flex justify-between items-center mb-4">
-    <h2 class="text-2xl font-semibold">Proveedores</h2>
+    <h2 class="text-2xl font-semibold">Importadora Transimport</h2>
     {% if has_permission('create') %}
       <a href="{{ url_for('registrar_proveedor') }}"
-         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-        + Nuevo Proveedor
+         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" style="margin-left:40rem">
+        + Nuevo Importación
       </a>
     {% endif %}
+    <!-- INPUT de búsqueda -->
+      <div class="">
+        <input id="flt-proveedores" type="text" placeholder="🔍 Filtrar por…" class="w-full border rounded px-3 py-2"/>
+      </div>
   </div>
 
-  <table class="w-full table-auto border-collapse">
+  <table id="tbl-proveedores" class="w-full table-auto border-collapse">
     <thead class="bg-gray-100">
       <tr>
         <th class="p-2 text-left">Nombre</th>
-        <th class="p-2 text-left">Titular</th>
-        <th class="p-2 text-left">Banco</th>
-        <th class="p-2 text-left">Cuenta</th>
-        <th class="p-2 text-left">SWIFT</th>
-        <th class="p-2 text-left"># Ruta</th>
+        <th class="p-2 text-left"># Oferta</th>
+        <th class="p-2 text-left">Millas</th>
+        <th class="p-2 text-left">$ vehiculo</th>
+        <th class="p-2 text-left">$ oferta</th>
+        <th class="p-2 text-left">gama</th>
+        <th class="p-2 text-left">Impuesto</th>
+        <th class="p-2 text-left">Acreditacion</th>  <!-- pendiente, proceso, textp plano -->
+        <th class="p-2 text-left">Observaciones</th>
         {% if has_permission('edit') or has_permission('delete') %}
           <th class="p-2 text-center">Acciones</th>
         {% endif %}
@@ -31,11 +38,14 @@
       {% for p in proveedores %}
         <tr class="hover:bg-gray-50 border-b">
           <td class="p-2">{{ p.nombre }}</td>
-          <td class="p-2">{{ p.titular }}</td>
-          <td class="p-2">{{ p.banco }}</td>
-          <td class="p-2">{{ p.numero_cuenta }}</td>
-          <td class="p-2">{{ p.swift }}</td>
-          <td class="p-2">{{ p.numero_ruta }}</td>
+          <td class="p-2">{{ p.oferta }}</td>
+          <td class="p-2">{{ p.millas }}</td>
+          <td class="p-2">{{ p.precio_vehiculo }}</td>
+          <td class="p-2">{{ p.precio_oferta }}</td>
+          <td class="p-2">{{ p.gama }}</td>
+          <td class="p-2">{{ p.impuesto }}</td>
+          <td class="p-2">{{ p.acreditacion }}</td>
+          <th class="p-2 text-left">{{ p.observaciones }}</th>
           {% if has_permission('edit') or has_permission('delete') %}
             <td class="p-2 text-center space-x-2">
               {% if has_permission('edit') %}
@@ -66,3 +76,28 @@
   </table>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('flt-proveedores');
+  const rows  = document.querySelectorAll('#tbl-proveedores tbody tr');
+
+  console.log('Filtro → input:', input, 'filas:', rows.length);
+
+  if (!input || rows.length === 0) {
+    console.warn('Filtro: no encontré input o filas de tabla');
+    return;
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    rows.forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+});
+</script>
+{% endblock %}
+
+

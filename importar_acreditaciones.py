@@ -1,51 +1,98 @@
-import os, sys
+import os
 import pandas as pd
 import mysql.connector
+import uuid
+from datetime import datetime
 
-def main():
-    # 1) Cargar el Excel
-    path = sys.argv[1] if len(sys.argv)>1 else os.path.join(os.path.expanduser("~"), "Documents", "datos.xlsx")
-    if not os.path.exists(path):
-        print("ERROR: no encontré el archivo:", path)
-        sys.exit(1)
+# --- Ruta del Excel en Documentos ---
+file_path = os.path.join(os.environ['USERPROFILE'], 'Documents', 'datos.xlsx')
 
-    df = pd.read_excel(path, sheet_name="ACREDITACIONES", engine="openpyxl", dtype=str)
-    df.columns = df.columns.str.strip()
-    print("Columnas en Excel:", df.columns.tolist())
+# --- Índices de las hojas que quieres importar: hoja 1, 2, y 4 (cero-indexed) ---
+hojas_objetivo = [0, 1, 3]
 
-    if "CLIENTE USA" not in df.columns:
-        print("ERROR: no veo la columna 'CLIENTE USA' en tu Excel")
-        sys.exit(1)
+# --- Conexión a la base de datos ---
+db_config = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '',
+    'database': 'maciaslogistic'
+}
 
-    # 2) Extraer valores únicos (limpios) de CLIENTE USA
-    clientes_usa = df["CLIENTE USA"].dropna().astype(str).str.strip()
-    clientes_usa = clientes_usa[clientes_usa != ""].unique().tolist()
-    print(f"Valores únicos de CLIENTE USA en Excel: {len(clientes_usa)}")
+# --- Normaliza encabezados y limpia NaNs ---
+def limpiar_df(df):
+    df = df.where(pd.notnull(df), None)
+    df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
+    return df
 
-    # 3) Conectar y ver qué proveedores ya están en la BD
-    conn = mysql.connector.connect(host="localhost", user="root", password="", database="maciaslogistic")
-    cur  = conn.cursor()
-    cur.execute("SELECT nombre FROM proveedores;")
-    existentes = {row[0] for row in cur.fetchall()}
-    print(f"Proveedores ya en BD: {len(existentes)}")
-
-    # 4) Determinar cuáles son nuevos
-    nuevos = [n for n in clientes_usa if n not in existentes]
-    print(f"Nuevos proveedores a insertar: {len(nuevos)} ->", nuevos[:10], "..." if len(nuevos)>10 else "")
-
-    # 5) Hacer el INSERT de los nuevos
-    if nuevos:
-        sql = "INSERT INTO proveedores (nombre) VALUES (%s);"
-        data = [(n,) for n in nuevos]
-        cur.executemany(sql, data)
-        conn.commit()
-        print("✅ Inserción completada. Filas afectadas:", cur.rowcount)
+# --- Clasifica tipo de persona basado en columnas PN y MPM ---
+def clasificar_persona(pn, mpm):
+    pn_flag = pn and str(pn).strip().upper() in ['X', 'SI', 'SÍ']
+    mpm_flag = mpm and str(mpm).strip() != ''
+    
+    if pn_flag and mpm_flag:
+        return "Persona natural / Mipyme"
+    elif pn_flag:
+        return "Persona natural"
+    elif mpm_flag:
+        return "Mipyme"
     else:
-        print("⚠️  No había nuevos proveedores; nada que insertar.")
+        return None
 
-    cur.close()
-    conn.close()
+# --- Conexión a MySQL ---
+conn = mysql.connector.connect(**db_config)
+cur = conn.cursor(dictionary=True)
 
+for hoja in hojas_objetivo:
+    df = pd.read_excel(file_path, sheet_name=hoja, engine='openpyxl', dtype=str)
+    df = limpiar_df(df)
 
-if __name__ == "__main__":
-    main()
+    for idx, row in df.iterrows():
+        t_persona = clasificar_persona(row.get('pn'), row.get('mpm'))
+
+        datos = (
+            row.get('estado'),                               # estado
+            row.get('vin'),                                  # vin
+            row.get('cliente_cuba'),                         # cuba
+            row.get('cliente_usa'),                          # usa
+            t_persona,                                       # t_persona
+            row.get('mpm'),                                  # num_envio
+            row.get('estado'),                               # estado_doc
+            row.get('conf._accordia') or row.get('acreditacion'),  # acreditacion
+            row.get('expediente'),                           # expediente
+            row.get('ubicacion'),                            # ubicacion
+            int(str(row.get('pagado', '')).strip().lower() in ['1', 'sí', 'si', 'x']),  # pagado
+            row.get('referencia'),                           # referencia
+            row.get('observaciones'),                        # observaciones
+            str(uuid.uuid4()),                               # uuid
+            datetime.now(),                                  # created_at
+            datetime.now()                                   # updated_at
+        )
+
+        cur.execute("""
+            INSERT INTO clientes (
+              estado, vin, cuba, usa, t_persona,
+              num_envio, estado_doc, acreditacion, expediente,
+              ubicacion, pagado, referencia, observaciones,
+              uuid, created_at, updated_at
+            ) VALUES (
+              %s, %s, %s, %s, %s,
+              %s, %s, %s, %s,
+              %s, %s, %s, %s,
+              %s, %s, %s
+            )
+            ON DUPLICATE KEY UPDATE
+              t_persona    = VALUES(t_persona),
+              cuba         = VALUES(cuba),
+              usa          = VALUES(usa),
+              referencia   = VALUES(referencia),
+              observaciones= VALUES(observaciones),
+              updated_at   = VALUES(updated_at)
+        """, datos)
+
+        print(f"✅ Hoja {hoja+1} → Fila {idx+1} procesada")
+
+# --- Finaliza ---
+conn.commit()
+cur.close()
+conn.close()
+print("🚀 Importación completa sin duplicados ni conflictos")

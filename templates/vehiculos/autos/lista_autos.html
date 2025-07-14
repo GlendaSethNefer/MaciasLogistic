@@ -2,24 +2,40 @@
 {% block titulo %}Autos | AutoGest{% endblock %}
 
 {% block contenido %}
-<div class="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow">
+<div class="max-w-full mx-4 p-6 bg-white rounded-lg shadow">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-2xl font-semibold">Autos</h2>
     {% if has_permission('create') %}
       <a href="{{ url_for('registrar_auto') }}"
-         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" style="margin-left:55rem">
         + Nuevo Auto
       </a>
     {% endif %}
+    <!-- INPUT de búsqueda -->
+    <div class="">
+      <input id="flt-autos" type="text" placeholder="🔍 Filtrar por…" class="w-full border rounded px-3 py-2"/>
+    </div>
   </div>
-  <table class="w-full table-auto border-collapse">
+  <table id="tbl-autos" class="w-full table-auto border-collapse text-sm">
     <thead class="bg-gray-100">
       <tr class="text-left">
+        <th class="p-2">Nombre Cliente</th>
+        <th class="p-2">DR</th>
         <th class="p-2">VIN</th>
         <th class="p-2">Marca</th>
         <th class="p-2">Modelo</th>
         <th class="p-2">Año</th>
-        <th class="p-2">Proveedor</th>
+        <th class="p-2">millas</th>
+        <th class="p-2"># Licencia</th>
+        <th class="p-2">Importadora</th>
+        <th class="p-2">Ent Puerto</th>
+        <th class="p-2">Tit enviado</th> <!--campo de true o false -->
+        <th class="p-2">Bill of sale</th> <!--campo de true o false -->
+        <th class="p-2">SED</th>
+        <th class="p-2">Estado</th> <!-- validacion true or false -->
+        <th class="p-2">Accordia</th> <!-- validacion or recibido -->
+        <th class="p-2">Fecha salida</th> <!--considerar que salga el amanaque-->
+        <th class="p-2 text-left">Observaciones</th>
         {% if has_permission('edit') or has_permission('delete') %}
           <th class="p-2 text-center">Acciones</th>
         {% endif %}
@@ -28,10 +44,22 @@
     <tbody>
       {% for a in autos %}
       <tr class="hover:bg-gray-50 border-b">
+        <td class="p-2">{{ a.nombre_cliente }}</td> <!--cliente cuba-->
+        <td class="p-2">{{ a.dr }}</td>
         <td class="p-2">{{ a.vin }}</td>
         <td class="p-2">{{ a.marca }}</td>
         <td class="p-2">{{ a.modelo }}</td>
         <td class="p-2">{{ a.año }}</td>
+        <td class="p-2">{{ a.millas}}</td>
+        <td class="p-2">{{ a.licencia }}</td>
+        <td class="p-2">{{ a.importadora }}</td>
+        <td class="p-2">{{ a.ent_puerto }}</td>
+        <td class="p-2">{{ a.tit_enviado }}</td>
+        <td class="p-2">{{ a.bill_of_sale }}</td>
+        <td class="p-2">{{ a.sed }}</td>
+        <td class="p-2">{{ a.estado }}</td>
+        <td class="p-2">{{ a.accordia }}</td>
+        <td class="p-2">{{ a.fecha_salida }}</td>
         <td class="p-2">{{ a.proveedor or '—' }}</td>
         {% if has_permission('edit') or has_permission('delete') %}
           <td class="p-2 text-center space-x-2">
@@ -62,4 +90,27 @@
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('flt-autos');
+  const rows  = document.querySelectorAll('#tbl-autos tbody tr');
+
+  console.log('Filtro → input:', input, 'filas:', rows.length);
+
+  if (!input || rows.length === 0) {
+    console.warn('Filtro: no encontré input o filas de tabla');
+    return;
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    rows.forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+});
+</script>
 {% endblock %}

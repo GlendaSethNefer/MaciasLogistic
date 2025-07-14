@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, abort, get_flashed_messages
+from flask import Flask, jsonify, render_template, request, redirect, url_for, flash, abort, get_flashed_messages
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from functools import wraps
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
+import uuid
 from datetime import datetime
+import json
 
 app = Flask(__name__)
 app.secret_key = 'TU_CLAVE_SECRETA_ALEATORIA'
@@ -115,6 +117,26 @@ def logout():
 def inicio():
     return render_template('vehiculos/inicio.html')
 
+#---------------------------------------------
+# Sincronizacion en la base de datos
+#exportacion
+@app.route('/sync/export/clientes', methods=['GET'])
+@login_required
+def export_clientes():
+    since = request.args.get('since')
+    if not since:
+        return jsonify({ 'error': 'se requiere parámetro since' }), 400
+
+    conn = mysql.connector.connect(**db_config)
+    cur  = conn.cursor(dictionary=True)
+    cur.execute("""
+      SELECT * FROM clientes
+      WHERE updated_at >= %s
+    """, (since,))
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    return jsonify(rows)
+
 # ----------------------------------------
 # PROVEEDORES
 @app.route('/proveedores')
@@ -127,53 +149,92 @@ def lista_proveedores():
     cur.close(); conn.close()
     return render_template('vehiculos/proveedores/lista_proveedores.html', proveedores=proveedores)
 
-@app.route('/proveedores/registrar', methods=['GET','POST'])
+@app.route('/proveedores/registrar', methods=['GET', 'POST'])
 @login_required
 @permission_required('create')
 def registrar_proveedor():
     if request.method == 'POST':
-        datos = tuple(request.form[f] for f in [
-          'nombre','titular','numero_cuenta','banco',
-          'direccion','swift','numero_ruta'
-        ])
+        data = (
+            request.form['nombre'],
+            request.form['oferta'],
+            request.form['millas'],
+            request.form['precio_vehiculo'],
+            request.form['precio_oferta'],
+            request.form['gama'],
+            request.form['impuesto'],
+            request.form['acreditacion'],
+            request.form['observaciones']
+        )
         conn = mysql.connector.connect(**db_config)
-        cur = conn.cursor()
+        cur  = conn.cursor()
         cur.execute("""
-          INSERT INTO proveedores
-          (nombre,titular,numero_cuenta,banco,direccion,swift,numero_ruta)
-          VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, datos)
-        conn.commit(); cur.close(); conn.close()
-        flash('Proveedor creado correctamente','success')
+            INSERT INTO proveedores
+              (nombre, oferta, millas, precio_vehiculo,
+               precio_oferta, gama, impuesto,
+               acreditacion, observaciones)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, data)
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('Proveedor creado correctamente', 'success')
         return redirect(url_for('lista_proveedores'))
+
     return render_template('vehiculos/proveedores/registrar_proveedor.html')
 
-@app.route('/proveedores/editar/<int:proveedor_id>', methods=['GET','POST'])
+@app.route('/proveedores/editar/<int:proveedor_id>', methods=['GET', 'POST'])
 @login_required
 @permission_required('edit')
 def editar_proveedor(proveedor_id):
     conn = mysql.connector.connect(**db_config)
-    cur = conn.cursor(dictionary=True)
+    cur  = conn.cursor(dictionary=True)
+
     if request.method == 'POST':
-        datos = tuple(request.form[f] for f in [
-          'nombre','titular','numero_cuenta','banco',
-          'direccion','swift','numero_ruta'
-        ]) + (proveedor_id,)
+        data = (
+            request.form['nombre'],
+            request.form['oferta'],
+            request.form['millas'],
+            request.form['precio_vehiculo'],
+            request.form['precio_oferta'],
+            request.form['gama'],
+            request.form['impuesto'],
+            request.form['acreditacion'],
+            request.form['observaciones'],
+            proveedor_id
+        )
         cur.execute("""
-          UPDATE proveedores SET
-            nombre=%s,titular=%s,numero_cuenta=%s,
-            banco=%s,direccion=%s,swift=%s,numero_ruta=%s
-          WHERE id=%s
-        """, datos)
-        conn.commit(); cur.close(); conn.close()
-        flash('Proveedor modificado','success')
+            UPDATE proveedores SET
+              nombre=%s,
+              oferta=%s,
+              millas=%s,
+              precio_vehiculo=%s,
+              precio_oferta=%s,
+              gama=%s,
+              impuesto=%s,
+              acreditacion=%s,
+              observaciones=%s
+            WHERE id=%s
+        """, data)
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('Proveedor modificado correctamente', 'success')
         return redirect(url_for('lista_proveedores'))
 
+    # GET → obtener datos existentes
     cur.execute("SELECT * FROM proveedores WHERE id=%s", (proveedor_id,))
     proveedor = cur.fetchone()
-    cur.close(); conn.close()
-    if not proveedor: abort(404)
-    return render_template('vehiculos/proveedores/editar_proveedor.html', proveedor=proveedor)
+    cur.close()
+    conn.close()
+
+    if not proveedor:
+        abort(404)
+
+    return render_template(
+        'vehiculos/proveedores/editar_proveedor.html',
+        proveedor=proveedor
+    )
+
 
 @app.route('/proveedores/borrar/<int:proveedor_id>', methods=['POST'])
 @login_required
@@ -183,7 +244,7 @@ def borrar_proveedor(proveedor_id):
     cur = conn.cursor()
     cur.execute("DELETE FROM proveedores WHERE id=%s", (proveedor_id,))
     conn.commit(); cur.close(); conn.close()
-    flash('Proveedor eliminado','success')
+    flash('Importación eliminada','success')
     return redirect(url_for('lista_proveedores'))
 
 # ----------------------------------------
@@ -192,38 +253,64 @@ def borrar_proveedor(proveedor_id):
 @login_required
 def lista_autos():
     conn = mysql.connector.connect(**db_config)
-    cur = conn.cursor(dictionary=True)
-    cur.execute("""SELECT a.*, p.nombre AS proveedor
-                   FROM autos a LEFT JOIN proveedores p
-                   ON a.proveedor_id=p.id""")
+    cur  = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM autos")
     autos = cur.fetchall()
-    cur.close(); conn.close()
-    return render_template('vehiculos/autos/lista_autos.html', autos=autos)
+    cur.close()
+    conn.close()
+    return render_template(
+        'vehiculos/autos/lista_autos.html',
+        autos=autos
+    )
 
-@app.route('/autos/registrar', methods=['GET','POST'])
+# Registrar Auto
+@app.route('/autos/registrar', methods=['GET', 'POST'])
 @login_required
 @permission_required('create')
 def registrar_auto():
-    conn = mysql.connector.connect(**db_config)
-    cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id,nombre FROM proveedores"); proveedores = cur.fetchall()
     if request.method == 'POST':
         datos = (
-          request.form['vin'],request.form['marca'],
-          request.form['modelo'],request.form['año'],
-          request.form['proveedor']
+            request.form['nombre_cliente'],
+            request.form['dr'],
+            request.form['vin'],
+            request.form['marca'],
+            request.form['modelo'],
+            request.form['año'],
+            request.form['millas'],
+            request.form['licencia'],
+            request.form['importadora'],
+            request.form['ent_puerto'],
+            request.form['tit_enviado'],
+            request.form['bill_of_sale'],
+            request.form['sed'],
+            request.form['estado'],
+            request.form['accordia'],
+            request.form['fecha_salida'],
+            request.form['observaciones']
         )
-        cur.execute("""
-          INSERT INTO autos(vin,marca,modelo,año,proveedor_id)
-          VALUES(%s,%s,%s,%s,%s)
-        """, datos)
-        conn.commit(); cur.close(); conn.close()
-        flash('Auto guardado','success')
-        return redirect(url_for('lista_autos'))
-    cur.close(); conn.close()
-    return render_template('vehiculos/autos/registrar_auto.html', proveedores=proveedores)
+        sql = """
+          INSERT INTO autos
+            (nombre_cliente, dr, vin, marca, modelo, año,
+             millas, licencia, importadora, ent_puerto,
+             tit_enviado, bill_of_sale, sed, estado,
+             accordia, fecha_salida, observaciones)
+          VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """
+        conn = mysql.connector.connect(**db_config)
+        cur  = conn.cursor()
+        cur.execute(sql, datos)
+        conn.commit()
+        cur.close()
+        conn.close()
 
-@app.route('/autos/editar/<int:auto_id>', methods=['GET','POST'])
+        flash('Auto registrado correctamente', 'success')
+        return redirect(url_for('lista_autos'))
+
+    return render_template('vehiculos/autos/registrar_auto.html')
+
+# ------------------------------------------------
+# Editar Auto
+@app.route('/autos/editar/<int:auto_id>', methods=['GET', 'POST'])
 @login_required
 @permission_required('edit')
 def editar_auto(auto_id):
@@ -232,39 +319,66 @@ def editar_auto(auto_id):
 
     if request.method == 'POST':
         datos = (
+            request.form['nombre_cliente'],
+            request.form['dr'],
             request.form['vin'],
             request.form['marca'],
             request.form['modelo'],
             request.form['año'],
-            request.form['proveedor'],
+            request.form['millas'],
+            request.form['licencia'],
+            request.form['importadora'],
+            request.form['ent_puerto'],
+            request.form['tit_enviado'],
+            request.form['bill_of_sale'],
+            request.form['sed'],
+            request.form['estado'],
+            request.form['accordia'],
+            request.form['fecha_salida'],
+            request.form['observaciones'],
             auto_id
         )
-        cur.execute("""
-            UPDATE autos SET
-              vin=%s, marca=%s, modelo=%s, año=%s, proveedor_id=%s
-            WHERE id=%s
-        """, datos + (auto_id,))
+        sql = """
+          UPDATE autos SET
+            nombre_cliente=%s,
+            dr=%s,
+            vin=%s,
+            marca=%s,
+            modelo=%s,
+            año=%s,
+            millas=%s,
+            licencia=%s,
+            importadora=%s,
+            ent_puerto=%s,
+            tit_enviado=%s,
+            bill_of_sale=%s,
+            sed=%s,
+            estado=%s,
+            accordia=%s,
+            fecha_salida=%s,
+            observaciones=%s
+          WHERE id=%s
+        """
+        cur.execute(sql, datos)
         conn.commit()
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
+
         flash('Auto modificado correctamente', 'success')
         return redirect(url_for('lista_autos'))
 
+    # GET → cargar datos existentes
     cur.execute("SELECT * FROM autos WHERE id=%s", (auto_id,))
     auto = cur.fetchone()
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
+
     if not auto:
         abort(404)
 
-    conn = mysql.connector.connect(**db_config)
-    cur  = conn.cursor(dictionary=True)
-    cur.execute("SELECT id, nombre FROM proveedores")
-    proveedores = cur.fetchall()
-    cur.close(); conn.close()
-
     return render_template(
-      'vehiculos/autos/editar_auto.html',
-      auto=auto,
-      proveedores=proveedores
+        'vehiculos/autos/editar_auto.html',
+        auto=auto
     )
 
 @app.route('/autos/borrar/<int:auto_id>', methods=['POST'])
@@ -284,63 +398,102 @@ def borrar_auto(auto_id):
 @login_required
 def lista_clientes():
     conn = mysql.connector.connect(**db_config)
-    cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT * FROM clientes"); clientes = cur.fetchall()
-    cur.close(); conn.close()
+    cur  = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM clientes")
+    clientes = cur.fetchall()
+    cur.close()
+    conn.close()
     return render_template('vehiculos/clientes/lista_clientes.html', clientes=clientes)
 
-@app.route('/clientes/registrar', methods=['GET','POST'])
+
+@app.route('/clientes/registrar', methods=['GET', 'POST'])
 @login_required
 @permission_required('create')
 def registrar_cliente():
     if request.method == 'POST':
-        datos = tuple(request.form[f] for f in [
-          'cliente_cuba','cliente_usa','pn','mpm','estado',
-          'conf_accordia','dr','estado_documentacion',
-          'expediente','vin','marca','modelo'
-        ])
+        datos = (
+            new_uuid, 
+            request.form['cuba'],
+            request.form['usa'],
+            request.form['t_persona'],
+            request.form['num_envio'],
+            request.form['estado_doc'],
+            request.form['acreditacion'],
+            request.form['expediente'],
+            request.form['vin'],
+            request.form['ubicacion'],
+            int(request.form.get('pagado', 0)),
+            request.form['referencia'],
+            request.form['observaciones']
+        )
+        sql = """
+          INSERT INTO clientes
+            (uuid, cuba, usa, t_persona, num_envio,
+             estado_doc, acreditacion, expediente,
+             vin, ubicacion, pagado,
+             referencia, observaciones)
+          VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """
         conn = mysql.connector.connect(**db_config)
-        cur = conn.cursor()
-        placeholders = ','.join(['%s']*len(datos))
-        sql = f"INSERT INTO clientes ({','.join([f for f,_ in []])}) VALUES ({placeholders})"
-        # Ajusta el SQL con tus campos
+        cur  = conn.cursor()
         cur.execute(sql, datos)
-        conn.commit(); cur.close(); conn.close()
-        flash('Cliente creado','success')
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('Cliente registrado correctamente', 'success')
         return redirect(url_for('lista_clientes'))
+
     return render_template('vehiculos/clientes/registrar_cliente.html')
 
-@app.route('/clientes/editar/<int:cliente_id>', methods=['GET','POST'])
+
+@app.route('/clientes/editar/<int:cliente_id>', methods=['GET', 'POST'])
 @login_required
 @permission_required('edit')
 def editar_cliente(cliente_id):
     conn = mysql.connector.connect(**db_config)
-    cur = conn.cursor(dictionary=True)
+    cur  = conn.cursor(dictionary=True)
+
     if request.method == 'POST':
         datos = (
-          request.form['cliente_cuba'],request.form['cliente_usa'],
-          request.form['pn'],request.form['mpm'],request.form['estado'],
-          request.form['conf_accordia'],request.form['dr'],
-          request.form['estado_documentacion'],request.form['expediente'],
-          request.form['vin'],request.form['marca'],request.form['modelo'],
-          cliente_id
+            request.form['cuba'],
+            request.form['usa'],
+            request.form['t_persona'],
+            request.form['num_envio'],
+            request.form['estado_doc'],
+            request.form['acreditacion'],
+            request.form['expediente'],
+            request.form['vin'],
+            request.form['ubicacion'],
+            int(request.form.get('pagado', 0)),
+            request.form['referencia'],
+            request.form['observaciones'],
+            cliente_id
         )
-        cur.execute("""
+        sql = """
           UPDATE clientes SET
-            cliente_cuba=%s,cliente_usa=%s,pn=%s,mpm=%s,estado=%s,
-            conf_accordia=%s,dr=%s,estado_documentacion=%s,
-            expediente=%s,vin=%s,marca=%s,modelo=%s
+            cuba=%s, usa=%s, t_persona=%s, num_envio=%s,
+            estado_doc=%s, acreditacion=%s, expediente=%s,
+            vin=%s, ubicacion=%s, pagado=%s,
+            referencia=%s, observaciones=%s
           WHERE id=%s
-        """, datos)
-        conn.commit(); cur.close(); conn.close()
-        flash('Cliente modificado','success')
+        """
+        cur.execute(sql, datos)
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('Cliente modificado correctamente', 'success')
         return redirect(url_for('lista_clientes'))
 
+    # GET → carga datos existentes
     cur.execute("SELECT * FROM clientes WHERE id=%s", (cliente_id,))
     cliente = cur.fetchone()
-    cur.close(); conn.close()
-    if not cliente: abort(404)
+    cur.close()
+    conn.close()
+    if not cliente:
+        abort(404)
+
     return render_template('vehiculos/clientes/editar_cliente.html', cliente=cliente)
+
 
 @app.route('/clientes/borrar/<int:cliente_id>', methods=['POST'])
 @login_required
@@ -354,45 +507,143 @@ def borrar_cliente(cliente_id):
     return redirect(url_for('lista_clientes'))
 
 # ----------------------------------------
-# ÓRDENES
+#RUTAS PARA ÓRDENES
+# -------------------------------
+
 @app.route('/ordenes')
 @login_required
 def lista_ordenes():
     conn = mysql.connector.connect(**db_config)
-    cur = conn.cursor(dictionary=True)
-    cur.execute("""SELECT o.*,c.cliente_cuba,a.vin
-                   FROM ordenes o
-                   JOIN clientes c ON o.cliente_id=c.id
-                   JOIN autos a ON o.auto_id=a.id""")
+    cur  = conn.cursor(dictionary=True)
+    # Traemos los campos que quieres mostrar, haciendo JOIN con usuarios y clientes
+    cur.execute("""
+      SELECT
+        o.id,
+        c.cuba    AS cliente_cuba,
+        o.vin,
+        u.nombre AS nombre_usuario,
+        o.fecha,
+        o.estado,
+        o.procesados AS total
+      FROM ordenes o
+      JOIN usuarios u  ON o.usuario_id  = u.id
+      JOIN clientes c ON o.cliente_id  = c.id
+      ORDER BY o.fecha DESC
+    """)
     ordenes = cur.fetchall()
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
     return render_template('vehiculos/ordenes/lista_ordenes.html', ordenes=ordenes)
 
-@app.route('/ordenes/registrar', methods=['GET','POST'])
+
+@app.route('/ordenes/registrar', methods=['GET', 'POST'])
 @login_required
 @permission_required('create')
 def registrar_orden():
-    conn = mysql.connector.connect(**db_config)
-    cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id,cliente_cuba FROM clientes"); clientes = cur.fetchall()
-    cur.execute("SELECT id,vin,marca,modelo FROM autos");        autos     = cur.fetchall()
-    cur.execute("SELECT id,nombre FROM usuarios");               usuarios  = cur.fetchall()
     if request.method == 'POST':
         datos = (
-          request.form['cliente_id'],request.form['auto_id'],
-          request.form['usuario_id'],request.form['estado'],
-          request.form['total']
+            current_user.id,
+            request.form['cliente_id'],
+            request.form['vin'],
+            request.form.get('expediente_id') or None,
+            request.form['estado'],
+            int(request.form.get('procesados', 0)),
+            request.form.get('observaciones'),
+            datetime.utcnow()
         )
-        cur.execute("""
-          INSERT INTO ordenes(cliente_id,auto_id,usuario_id,estado,total)
-          VALUES(%s,%s,%s,%s,%s)
-        """, datos)
-        conn.commit(); cur.close(); conn.close()
-        flash('Orden creada','success')
+        sql = """
+          INSERT INTO ordenes
+            (usuario_id, cliente_id, vin, expediente_id,
+             estado, procesados, observaciones, fecha)
+          VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+        """
+        conn = mysql.connector.connect(**db_config)
+        cur  = conn.cursor()
+        cur.execute(sql, datos)
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('Orden registrada correctamente', 'success')
         return redirect(url_for('lista_ordenes'))
-    cur.close(); conn.close()
-    return render_template('vehiculos/ordenes/registrar_orden.html',
-                           clientes=clientes, autos=autos, usuarios=usuarios)
+
+    # Si es GET, necesitamos lista de clientes para el select
+    conn = mysql.connector.connect(**db_config)
+    cur  = conn.cursor(dictionary=True)
+    cur.execute("SELECT id, cuba FROM clientes ORDER BY cuba")
+    clientes = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template(
+      'vehiculos/ordenes/registrar_orden.html',
+      clientes=clientes
+    )
+
+
+@app.route('/ordenes/editar/<int:orden_id>', methods=['GET', 'POST'])
+@login_required
+@permission_required('edit')
+def editar_orden(orden_id):
+    conn = mysql.connector.connect(**db_config)
+    cur  = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        datos = (
+            request.form['cliente_id'],
+            request.form['vin'],
+            request.form.get('expediente_id') or None,
+            request.form['estado'],
+            int(request.form.get('procesados', 0)),
+            request.form.get('observaciones'),
+            orden_id
+        )
+        sql = """
+          UPDATE ordenes SET
+            cliente_id=%s, vin=%s, expediente_id=%s,
+            estado=%s, procesados=%s, observaciones=%s
+          WHERE id=%s
+        """
+        cur.execute(sql, datos)
+        conn.commit()
+        cur.close()
+        conn.close()
+        flash('Orden modificada correctamente', 'success')
+        return redirect(url_for('lista_ordenes'))
+
+    # GET → cargo datos existentes
+    cur.execute("SELECT * FROM ordenes WHERE id=%s", (orden_id,))
+    orden = cur.fetchone()
+    if not orden:
+        cur.close()
+        conn.close()
+        abort(404)
+
+    # también necesito clientes para el select
+    cur.execute("SELECT id, cuba FROM clientes ORDER BY cuba")
+    clientes = cur.fetchall()
+
+    cur.close()
+    conn.close()
+    return render_template(
+      'vehiculos/ordenes/editar_orden.html',
+      orden=orden,
+      clientes=clientes
+    )
+
+
+@app.route('/ordenes/borrar/<int:orden_id>', methods=['POST'])
+@login_required
+@permission_required('delete')
+def borrar_orden(orden_id):
+    conn = mysql.connector.connect(**db_config)
+    cur  = conn.cursor()
+    cur.execute("DELETE FROM ordenes WHERE id=%s", (orden_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    flash('Orden eliminada', 'success')
+    return redirect(url_for('lista_ordenes'))
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

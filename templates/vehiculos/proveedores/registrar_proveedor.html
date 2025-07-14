@@ -5,41 +5,36 @@
 <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow">
   <h2 class="text-xl font-semibold mb-4">Registrar Proveedor</h2>
   <form method="POST" class="space-y-4">
-    <div>
-      <label class="block font-medium">Nombre</label>
-      <input name="nombre" type="text" required
-             class="w-full border rounded px-3 py-2"/>
-    </div>
-    <div>
-      <label class="block font-medium">Titular</label>
-      <input name="titular" type="text" required
-             class="w-full border rounded px-3 py-2"/>
-    </div>
-    <div>
-      <label class="block font-medium">Número de Cuenta</label>
-      <input name="numero_cuenta" type="text" required
-             class="w-full border rounded px-3 py-2"/>
-    </div>
-    <div>
-      <label class="block font-medium">Banco</label>
-      <input name="banco" type="text" required
-             class="w-full border rounded px-3 py-2"/>
-    </div>
-    <div>
-      <label class="block font-medium">Dirección</label>
-      <input name="direccion" type="text" required
-             class="w-full border rounded px-3 py-2"/>
-    </div>
-    <div>
-      <label class="block font-medium">SWIFT</label>
-      <input name="swift" type="text" required
-             class="w-full border rounded px-3 py-2"/>
-    </div>
-    <div>
-      <label class="block font-medium">Número de Ruta</label>
-      <input name="numero_ruta" type="text" required
-             class="w-full border rounded px-3 py-2"/>
-    </div>
+    {% for field,label,kind in [
+      ('nombre','Nombre','text'),
+      ('oferta','Número de Oferta','number'),
+      ('millas','Millas','number'),
+      ('precio_vehiculo','Precio del Vehículo','number'),
+      ('precio_oferta','Precio en Oferta','number'),
+      ('gama','Gama','text'),
+      ('impuesto','Impuesto (%)','number'),
+      ('acreditacion','Acreditación','text'),
+      ('observaciones','Observaciones','textarea')
+    ] %}
+      <div>
+        <label class="block font-medium mb-1">{{ label }}</label>
+        {% if kind == 'textarea' %}
+          <textarea
+            name="{{ field }}"
+            rows="3"
+            class="w-full border rounded px-3 py-2"
+          ></textarea>
+        {% else %}
+          <input
+            name="{{ field }}"
+            type="{{ kind }}"
+            {% if kind=='number' %} step="0.01" min="0" {% endif %}
+            required
+            class="w-full border rounded px-3 py-2"
+          />
+        {% endif %}
+      </div>
+    {% endfor %}
     <button type="submit"
       class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
       Guardar Proveedor
@@ -47,3 +42,4 @@
   </form>
 </div>
 {% endblock %}
+

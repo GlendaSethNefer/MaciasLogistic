@@ -37,3 +37,17 @@ class User(db.Model, UserMixin):
     def has_role(self, role_name):
         return any(r.name == role_name for r in self.roles)
 
+class Orden(db.Model):
+    __tablename__ = 'ordenes'
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
+    vin = db.Column(db.String(17), nullable=False)
+    expediente_id = db.Column(db.Integer, db.ForeignKey('expedientes.id'))  # opcional
+    estado = db.Column(db.String(50))
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    procesados = db.Column(db.Integer, default=0)
+    observaciones = db.Column(db.Text)
+
+    usuario = db.relationship('Usuario', backref='ordenes')
+    cliente = db.relationship('Cliente', backref='ordenes')

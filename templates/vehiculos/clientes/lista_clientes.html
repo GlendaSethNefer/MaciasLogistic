@@ -2,26 +2,35 @@
 {% block titulo %}Clientes | AutoGest{% endblock %}
 
 {% block contenido %}
-<div class="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow">
+<div class="max-w-full mx-4 p-6 bg-white rounded-lg shadow">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-2xl font-semibold">Clientes</h2>
     {% if has_permission('create') %}
       <a href="{{ url_for('registrar_cliente') }}"
-         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+         class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" style="margin-left:55rem">
         + Nuevo Cliente
       </a>
     {% endif %}
+    <!-- INPUT de búsqueda -->
+    <div class="">
+      <input id="flt-clientes" type="text" placeholder="🔍 Filtrar por…" class="w-full border rounded px-3 py-2"/>
+    </div>
   </div>
-  <table class="w-full table-auto border-collapse">
+  <table id="tbl-clientes" class="w-full table-auto border-collapse text-xs">
     <thead class="bg-gray-100">
       <tr>
         <th class="p-2 text-left">Cuba</th>
         <th class="p-2 text-left">USA</th>
-        <th class="p-2 text-left">Estado Doc.</th>
-        <th class="p-2 text-left"># Exp.</th>
-        <th class="p-2 text-left">Auto (VIN)</th>
-        <th class="p-2 text-left">Marca</th>
-        <th class="p-2 text-left">Modelo</th>
+        <th class="p-2 text-left">T.Persona</th> <!--personal natural o Pyme-->
+        <th class="p-2 text-left"># envio</th> <!--esta campo no esta en las tablas aun pero se anadira mas adelante-->
+        <th class="p-2 text-left">Estado Doc.</th> <!-- fecha de salida puerto eeuu, en puerto o cuba-->
+        <th class="p-2 text-left">Acreditacion</th> <!-- pendiente, proceso, textp plano -->
+        <th class="p-2 text-left">Expediente</th> <!--quien atiende la documentacion-->
+        <th class="p-2 text-left">Auto VIN</th>
+        <th class="p-2 text-left">Ubicacion</th>
+        <th class="p-2 text-left">Pagado</th>
+        <th class="p-2 text-left">Referencia</th>  <!-- texto plano -->
+        <th class="p-2 text-left">Observaciones</th>
         {% if has_permission('edit') or has_permission('delete') %}
           <th class="p-2 text-center">Acciones</th>
         {% endif %}
@@ -30,13 +39,18 @@
     <tbody>
       {% for c in clientes %}
       <tr class="hover:bg-gray-50 border-b">
-        <td class="p-2">{{ c.cliente_cuba }}</td>
-        <td class="p-2">{{ c.cliente_usa }}</td>
-        <td class="p-2">{{ c.estado_documentacion }}</td>
+        <td class="p-2">{{ c.cuba }}</td>
+        <td class="p-2">{{ c.usa }}</td>
+        <td class="p-2">{{ c.t_persona }}</td>
+        <td class="p-2">{{ c.num_envio }}</td>
+        <td class="p-2">{{ c.estado_doc }}</td>
+        <td class="p-2">{{ c.acreditacion }}</td>
         <td class="p-2">{{ c.expediente }}</td>
         <td class="p-2">{{ c.vin }}</td>
-        <td class="p-2">{{ c.marca }}</td>
-        <td class="p-2">{{ c.modelo }}</td>
+        <td class="p-2">{{ c.ubicacion }}</td>
+        <td class="p-2">{{ c.pagado }}</td>
+        <td class="p-2">{{ c.referencia }}</td>
+        <td class="p-2">{{ c.observaciones }}</td>
         {% if has_permission('edit') or has_permission('delete') %}
           <td class="p-2 text-center space-x-2">
             {% if has_permission('edit') %}
@@ -66,4 +80,27 @@
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('flt-clientes');
+  const rows  = document.querySelectorAll('#tbl-clientes tbody tr');
+
+  console.log('Filtro → input:', input, 'filas:', rows.length);
+
+  if (!input || rows.length === 0) {
+    console.warn('Filtro: no encontré input o filas de tabla');
+    return;
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    rows.forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+});
+</script>
 {% endblock %}

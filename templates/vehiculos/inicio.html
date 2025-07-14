@@ -35,4 +35,14 @@
       </div>
     </div>
   </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.querySelectorAll('.flash').forEach(el => {
+          el.classList.add('opacity-0');
+          setTimeout(() => el.remove(), 500);
+        });
+      }, 3000);
+    });
+  </script>
 {% endblock %}

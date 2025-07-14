@@ -11,11 +11,19 @@
     <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
       <a href="{{ url_for('inicio') }}" class="text-xl font-bold">AutoGest</a>
       <nav class="space-x-4">
-        <a href="{{ url_for('lista_proveedores') }}" class="hover:underline">Proveedores</a>
+        <a href="{{ url_for('lista_proveedores') }}" class="hover:underline">Importadora</a>
         <a href="{{ url_for('lista_autos') }}"      class="hover:underline">Autos</a>
         <a href="{{ url_for('lista_clientes') }}"   class="hover:underline">Clientes</a>
         <a href="{{ url_for('lista_ordenes') }}"    class="hover:underline">Órdenes</a>      
       </nav>
+      <div class="flex items-center space-x-4">
+        {% if current_user.is_autenticated %}
+            <span>{{ nombre_usuario}} ({{ rol_actual }})</span>
+            <a href="{{ url_for('logout') }}" class=" text-red-600 hover:underline">Cerrar sesión</a>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="text-indigo-600 hover:underline">Iniciar sesión</a>
+        {% endif %}
+      </div>
     </div>
     <!-- Flash messages -->
     <div class="max-w-6xl mx-auto px-4 mt-4">
@@ -51,5 +59,6 @@
       }, 3000);
     });
   </script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>
